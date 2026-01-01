@@ -5,23 +5,30 @@ const { Server } = require("socket.io");
 const server = http.createServer();
 const io = new Server(server, { cors: { origin: "*" } });
 
-let devices = {};
+const users = {};
 
 io.on("connection", socket => {
   socket.on("join", data => {
-    devices[socket.id] = { id: socket.id, name: data.name, type: data.type };
-    io.emit("devices", Object.values(devices));
+    users[socket.id] = {
+      id: socket.id,
+      name: data.name,
+      role: data.role
+    };
+    io.emit("receivers", Object.values(users).filter(u => u.role === "receive"));
   });
 
-  socket.on("connect-request", data => {
-    io.to(data.to).emit("incoming-connect", {
+  socket.on("request-send", data => {
+    io.to(data.to).emit("incoming-request", {
       from: socket.id,
-      name: devices[socket.id]?.name || "Dispositivo"
+      name: users[socket.id]?.name
     });
   });
 
-  socket.on("connect-accept", data => {
-    io.to(data.to).emit("connect-accepted", { from: socket.id });
+  socket.on("accept-request", data => {
+    io.to(data.to).emit("request-accepted", {
+      from: socket.id,
+      name: users[socket.id]?.name
+    });
   });
 
   socket.on("signal", data => {
@@ -29,8 +36,8 @@ io.on("connection", socket => {
   });
 
   socket.on("disconnect", () => {
-    delete devices[socket.id];
-    io.emit("devices", Object.values(devices));
+    delete users[socket.id];
+    io.emit("receivers", Object.values(users).filter(u => u.role === "receive"));
   });
 });
 
