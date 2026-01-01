@@ -4,7 +4,7 @@ const { Server } = require("socket.io");
 const server = http.createServer();
 const io = new Server(server, { cors: { origin: "*" } });
 
-const users = {}; // guardamos los usuarios conectados
+const users = {}; // usuarios conectados
 
 io.on("connection", socket => {
 
@@ -15,13 +15,12 @@ io.on("connection", socket => {
       name: data.name,
       role: data.role
     };
-    // Emitimos solo receptores a todos los emisores
+    // Emitimos receptores a todos
     io.emit("receivers", Object.values(users).filter(u => u.role === "receive"));
   });
 
-  // Emisor solicita enviar a receptor
+  // Emisor solicita enviar
   socket.on("request-send", data => {
-    // data.to = receptorID
     io.to(data.to).emit("incoming-request", {
       from: socket.id, // emisorID
       name: users[socket.id]?.name
@@ -30,7 +29,6 @@ io.on("connection", socket => {
 
   // Receptor acepta solicitud
   socket.on("accept-request", data => {
-    // data.to = emisorID
     io.to(data.to).emit("request-accepted", {
       from: socket.id // receptorID
     });
@@ -41,7 +39,7 @@ io.on("connection", socket => {
     io.to(data.to).emit("signal", data);
   });
 
-  // Usuario se desconecta
+  // Desconexión
   socket.on("disconnect", () => {
     delete users[socket.id];
     io.emit("receivers", Object.values(users).filter(u => u.role === "receive"));
